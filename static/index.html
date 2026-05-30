@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinanceAgent — AI-Powered Bank Statement Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0c0c0e;
+  --surface: #141416;
+  --surface2: #1c1c20;
+  --surface3: #242428;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --border3: rgba(255,255,255,0.16);
+  --text: #f2f2f0;
+  --muted: #888884;
+  --dim: #555552;
+  --accent: #c8f560;
+  --accent2: #a8d940;
+  --accent-dim: rgba(200,245,96,0.08);
+  --accent-border: rgba(200,245,96,0.2);
+  --danger: #ff6b6b;
+  --danger-dim: rgba(255,107,107,0.1);
+  --warn: #ffb84d;
+  --warn-dim: rgba(255,184,77,0.1);
+  --info: #60a5fa;
+  --info-dim: rgba(96,165,250,0.1);
+  --r: 10px;
+  --r-lg: 16px;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; padding: 0 32px;
+  height: 60px;
+  background: rgba(12,12,14,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; }
+.nav-logo-mark {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--accent); display: flex; align-items: center;
+  justify-content: center; font-size: 14px; color: #000; font-weight: 700;
+}
+.nav-name { font-family: 'Playfair Display', serif; font-size: 17px; letter-spacing: -0.01em; }
+.nav-links { display: flex; gap: 28px; margin-left: auto; align-items: center; }
+.nav-links a { font-size: 12px; color: var(--muted); text-decoration: none; letter-spacing: 0.04em; transition: color .15s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta {
+  margin-left: 20px; padding: 7px 16px;
+  background: var(--accent); color: #000;
+  border-radius: 6px; font-size: 12px; font-weight: 500;
+  text-decoration: none; transition: opacity .15s;
+}
+.nav-cta:hover { opacity: .85; }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 80px 24px 60px;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 50% at 50% 40%, rgba(200,245,96,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  font-size: 11px; color: var(--accent);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 28px;
+}
+.hero-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(42px, 6vw, 76px);
+  font-weight: 600; line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+  max-width: 800px;
+}
+.hero h1 em { font-style: italic; color: var(--accent); }
+.hero-sub {
+  font-size: 14px; color: var(--muted); max-width: 480px;
+  line-height: 1.8; margin-bottom: 40px;
+}
+.hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 28px; background: var(--accent); color: #000;
+  border-radius: 8px; font-family: 'DM Mono', monospace;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  border: none; text-decoration: none; transition: all .15s;
+}
+.btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 28px;
+  border: 1px solid var(--border3); background: transparent; color: var(--text);
+  border-radius: 8px; font-family: 'DM Mono', monospace;
+  font-size: 13px; cursor: pointer; text-decoration: none; transition: all .15s;
+}
+.btn-secondary:hover { background: var(--surface2); }
+.hero-stats {
+  display: flex; gap: 40px; margin-top: 60px;
+  padding-top: 40px; border-top: 1px solid var(--border);
+  justify-content: center; flex-wrap: wrap;
+}
+.hero-stat-val { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--accent); }
+.hero-stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 0.05em; }
+
+/* ── APP SECTION ── */
+.app-section {
+  max-width: 1100px; margin: 0 auto;
+  padding: 80px 24px;
+}
+
+.section-tag {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 10px;
+}
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.2; margin-bottom: 40px;
+}
+
+/* ── UPLOAD ── */
+.upload-wrapper { max-width: 600px; margin: 0 auto; }
+.drop-zone {
+  border: 1px dashed var(--border3);
+  border-radius: var(--r-lg); padding: 48px 32px;
+  text-align: center; cursor: pointer;
+  transition: all .2s; background: var(--surface);
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.drop-icon {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-size: 22px;
+}
+.drop-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+.drop-sub { font-size: 12px; color: var(--muted); }
+.drop-sub strong { color: var(--accent); cursor: pointer; font-weight: 400; }
+.drop-formats {
+  display: flex; gap: 8px; justify-content: center; margin-top: 20px;
+}
+.fmt-tag {
+  font-size: 10px; padding: 3px 8px; border-radius: 4px;
+  border: 1px solid var(--border2); color: var(--muted);
+  letter-spacing: 0.05em;
+}
+#file-input { display: none; }
+
+.file-selected {
+  display: none; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-top: 12px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--r);
+}
+.file-selected.show { display: flex; }
+.file-icon { font-size: 18px; }
+.file-name { font-size: 13px; flex: 1; }
+.file-remove { font-size: 12px; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: all .15s; }
+.file-remove:hover { color: var(--danger); background: var(--danger-dim); }
+
+.analyze-btn {
+  width: 100%; margin-top: 16px; padding: 14px;
+  background: var(--accent); color: #000;
+  border: none; border-radius: var(--r);
+  font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.analyze-btn:hover:not(:disabled) { opacity: .88; }
+.analyze-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── RESULTS ── */
+#results { display: none; margin-top: 60px; }
+
+.metrics-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px; margin-bottom: 28px;
+}
+.metric-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 20px;
+  transition: border-color .15s;
+}
+.metric-card:hover { border-color: var(--border2); }
+.metric-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+.metric-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px; font-weight: 600; line-height: 1;
+}
+.metric-val.green { color: var(--accent); }
+.metric-val.red { color: var(--danger); }
+.metric-val.warn { color: var(--warn); }
+.metric-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+.results-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 16px; margin-bottom: 16px;
+}
+@media (max-width: 700px) { .results-grid { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.card-title { font-size: 12px; font-weight: 500; letter-spacing: 0.03em; display: flex; align-items: center; gap: 8px; }
+.card-count {
+  font-size: 10px; padding: 2px 8px; border-radius: 20px;
+  background: var(--surface2); color: var(--muted);
+}
+.card-body { padding: 20px; }
+
+/* category bars */
+.cat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cat-row:last-child { margin-bottom: 0; }
+.cat-name { font-size: 11px; color: var(--muted); width: 100px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-track { flex: 1; height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.cat-bar { height: 100%; border-radius: 3px; background: var(--accent); transition: width .7s cubic-bezier(.4,0,.2,1); }
+.cat-bar.warn { background: var(--warn); }
+.cat-bar.danger { background: var(--danger); }
+.cat-amt { font-size: 11px; font-weight: 500; min-width: 72px; text-align: right; }
+
+/* chart */
+.chart-wrap { position: relative; height: 200px; }
+
+/* anomalies */
+.anomaly-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.anomaly-row:last-child { border-bottom: none; padding-bottom: 0; }
+.anomaly-sev {
+  width: 6px; height: 6px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 6px;
+}
+.anomaly-sev.high { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+.anomaly-sev.medium { background: var(--warn); }
+.anomaly-msg { font-size: 12px; line-height: 1.6; color: var(--muted); }
+.anomaly-badge {
+  display: inline-block; font-size: 10px; padding: 1px 7px;
+  border-radius: 10px; margin-top: 4px;
+}
+.anomaly-badge.high { background: var(--danger-dim); color: var(--danger); }
+.anomaly-badge.medium { background: var(--warn-dim); color: var(--warn); }
+.no-anomalies { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; }
+.no-anomalies-icon { font-size: 24px; margin-bottom: 8px; }
+
+/* tips */
+.tip-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.tip-row:last-child { border-bottom: none; padding-bottom: 0; }
+.tip-icon-wrap {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  background: var(--accent-dim); border: 1px solid var(--accent-border);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.tip-text { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.tip-save { font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 500; }
+
+/* ── CHAT ── */
+.chat-section {
+  max-width: 1100px; margin: 0 auto;
+  padding: 0 24px 80px;
+  display: none;
+}
+.chat-section.show { display: block; }
+
+.chat-header { margin-bottom: 16px; }
+.chat-header-title { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 4px; }
+.chat-header-sub { font-size: 12px; color: var(--muted); }
+
+.quick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  padding: 6px 14px; border-radius: 20px;
+  border: 1px solid var(--border2); background: transparent;
+  color: var(--muted); cursor: pointer; transition: all .15s;
+}
+.chip:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.chat-window {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.chat-messages {
+  padding: 20px; display: flex; flex-direction: column;
+  gap: 14px; min-height: 200px; max-height: 360px; overflow-y: auto;
+}
+.chat-messages::-webkit-scrollbar { width: 3px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border3); border-radius: 2px; }
+
+.msg { display: flex; gap: 10px; animation: msgIn .2s ease; }
+.msg.user { flex-direction: row-reverse; }
+@keyframes msgIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+.msg-av {
+  width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 500; margin-top: 2px;
+}
+.msg-av.ai { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+.msg-av.you { background: var(--surface3); color: var(--muted); border: 1px solid var(--border2); }
+
+.msg-bubble {
+  max-width: 75%; padding: 10px 14px;
+  border-radius: 12px; font-size: 12px; line-height: 1.75;
+}
+.msg-bubble.ai { background: var(--surface2); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+.msg-bubble.you { background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent); border-bottom-right-radius: 3px; }
+
+.typing-dots { display: flex; gap: 4px; padding: 3px 0; }
+.typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: dot 1.2s infinite; }
+.typing-dots span:nth-child(2) { animation-delay: .2s; }
+.typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 0%,80%,100% { opacity: .2; } 40% { opacity: 1; } }
+
+.chat-input-bar {
+  display: flex; gap: 10px; padding: 14px 16px;
+  border-top: 1px solid var(--border); background: var(--surface2);
+}
+.chat-input {
+  flex: 1; background: var(--surface3); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 9px 14px; color: var(--text);
+  font-family: 'DM Mono', monospace; font-size: 12px; outline: none;
+  transition: border-color .15s;
+}
+.chat-input:focus { border-color: var(--border3); }
+.chat-input::placeholder { color: var(--dim); }
+.send-btn {
+  width: 38px; height: 38px; border-radius: 8px;
+  background: var(--accent); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: #000; transition: opacity .15s; flex-shrink: 0;
+}
+.send-btn:hover { opacity: .85; }
+.send-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* ── FEATURES ── */
+.features-section {
+  border-top: 1px solid var(--border);
+  padding: 80px 24px;
+  max-width: 1100px; margin: 0 auto;
+}
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 2px; }
+.feature-card {
+  padding: 28px; background: var(--surface);
+  transition: background .15s;
+}
+.feature-card:hover { background: var(--surface2); }
+.feature-icon {
+  font-size: 22px; margin-bottom: 14px;
+  width: 44px; height: 44px; border-radius: 10px;
+  background: var(--surface2); display: flex; align-items: center; justify-content: center;
+}
+.feature-title { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+.feature-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border); padding: 28px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.footer-copy { font-size: 11px; color: var(--muted); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 11px; color: var(--muted); text-decoration: none; transition: color .15s; }
+.footer-links a:hover { color: var(--text); }
+
+/* ── SPINNER ── */
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.2); border-top-color: #000;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 12px 18px; border-radius: 8px; font-size: 12px;
+  transform: translateY(80px); opacity: 0; transition: all .25s;
+  z-index: 200; max-width: 280px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--accent); color: #000; }
+.toast.error { background: var(--danger); color: #fff; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-mark">₹</div>
+    <span class="nav-name">FinanceAgent</span>
+  </div>
+  <div class="nav-links">
+    <a href="#analyze">Analyze</a>
+    <a href="#features">Features</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+    <a href="#analyze" class="nav-cta">Try free →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge"><span class="hero-badge-dot"></span> Powered by Gemini + LangGraph</div>
+  <h1>Your bank statement,<br><em>intelligently analyzed.</em></h1>
+  <p class="hero-sub">Upload any bank statement — PDF or CSV. Get instant spending breakdown, anomaly detection, and personalized savings advice.</p>
+  <div class="hero-actions">
+    <a href="#analyze" class="btn-primary">⟶ Analyze my statement</a>
+    <a href="#features" class="btn-secondary">See what it does</a>
+  </div>
+  <div class="hero-stats">
+    <div><div class="hero-stat-val">4</div><div class="hero-stat-label">AI tools working together</div></div>
+    <div><div class="hero-stat-val">10+</div><div class="hero-stat-label">Spending categories</div></div>
+    <div><div class="hero-stat-val">100%</div><div class="hero-stat-label">Private — no data stored</div></div>
+  </div>
+</section>
+
+<!-- ANALYZE -->
+<section class="app-section" id="analyze">
+  <div class="section-tag">// upload</div>
+  <div class="section-title">Drop your statement,<br>get instant answers.</div>
+
+  <div class="upload-wrapper">
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept=".pdf,.csv,.xlsx">
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">Drag & drop your bank statement</div>
+      <div class="drop-sub">or <strong onclick="document.getElementById('file-input').click()">browse to upload</strong></div>
+      <div class="drop-formats">
+        <span class="fmt-tag">PDF</span>
+        <span class="fmt-tag">CSV</span>
+        <span class="fmt-tag">XLSX</span>
+      </div>
+    </div>
+
+    <div class="file-selected" id="file-selected">
+      <span class="file-icon">📄</span>
+      <span class="file-name" id="file-name-display"></span>
+      <span class="file-remove" onclick="clearFile()">✕ remove</span>
+    </div>
+
+    <button class="analyze-btn" id="analyze-btn" disabled onclick="runAnalysis()">
+      <span id="btn-text">Analyze with AI</span>
+    </button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div class="metrics-grid" id="metrics-grid"></div>
+    <div class="results-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📊 Spending by category</div>
+          <span class="card-count" id="cat-count">0 categories</span>
+        </div>
+        <div class="card-body" id="cat-body"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🥧 Spending chart</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="pie-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="results-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚠️ Anomaly detection</div>
+          <span class="card-count" id="anom-count">0 found</span>
+        </div>
+        <div class="card-body" id="anom-body"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">💡 Savings advice</div>
+          <span class="card-count" id="tips-count">0 tips</span>
+        </div>
+        <div class="card-body" id="tips-body"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAT -->
+<div class="chat-section" id="chat-section">
+  <div class="chat-header">
+    <div class="chat-header-title">Ask anything about your finances</div>
+    <div class="chat-header-sub">Your AI agent has read your full statement and is ready to answer</div>
+  </div>
+  <div class="quick-chips" id="quick-chips">
+    <button class="chip" onclick="ask('What is my biggest expense this month?')">Biggest expense →</button>
+    <button class="chip" onclick="ask('Which subscriptions should I cancel?')">Cancel subscriptions →</button>
+    <button class="chip" onclick="ask('How can I save ₹5000 next month?')">Save ₹5000 →</button>
+    <button class="chip" onclick="ask('Am I overspending on food?')">Food check →</button>
+    <button class="chip" onclick="ask('Give me a 3-month savings plan')">Savings plan →</button>
+    <button class="chip" onclick="ask('What are my recurring charges?')">Recurring charges →</button>
+  </div>
+  <div class="chat-window">
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-bar">
+      <input type="text" class="chat-input" id="chat-input" placeholder="Ask about your spending..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="send-btn" id="send-btn" onclick="sendChat()">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features-section" id="features">
+  <div class="section-tag">// capabilities</div>
+  <div class="section-title" style="margin-bottom:40px">Everything your bank<br>doesn't tell you.</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📂</div>
+      <div class="feature-title">PDF & CSV support</div>
+      <div class="feature-desc">Upload statements from any Indian bank — HDFC, SBI, ICICI, Axis, Kotak and more. Supports PDF and CSV formats.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Smart categorization</div>
+      <div class="feature-desc">Automatically groups 10+ spending categories — food, transport, entertainment, utilities, and more.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚠️</div>
+      <div class="feature-title">Anomaly detection</div>
+      <div class="feature-desc">Flags duplicate charges, unusually large transactions, and suspicious patterns using statistical analysis.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💡</div>
+      <div class="feature-title">Savings advice</div>
+      <div class="feature-desc">Personalized tips based on your actual spending — not generic advice. Estimates real monthly savings potential.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <div class="feature-title">AI chat assistant</div>
+      <div class="feature-desc">Ask anything about your finances in plain language. The agent knows your full statement context.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <div class="feature-title">100% private</div>
+      <div class="feature-desc">Your data is processed in memory only — nothing is stored, logged, or shared. Fully open source.</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="footer-copy">© 2025 FinanceAgent · Built with LangGraph + Gemini</span>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">GitHub</a>
+    <a href="#">API docs</a>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let selectedFile = null;
+let analysisContext = {};
+let pieChart = null;
+
+// ── File handling ──────────────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+['dragover','dragenter'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('active'); }));
+['dragleave','dragend'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('active')));
+dropZone.addEventListener('drop', ev => { ev.preventDefault(); dropZone.classList.remove('active'); if(ev.dataTransfer.files[0]) setFile(ev.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if(fileInput.files[0]) setFile(fileInput.files[0]); });
+
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById('file-name-display').textContent = f.name;
+  document.getElementById('file-selected').classList.add('show');
+  document.getElementById('analyze-btn').disabled = false;
+  dropZone.style.opacity = '0.5';
+}
+function clearFile() {
+  selectedFile = null; fileInput.value = '';
+  document.getElementById('file-selected').classList.remove('show');
+  document.getElementById('analyze-btn').disabled = true;
+  dropZone.style.opacity = '1';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('chat-section').classList.remove('show');
+}
+
+// ── Analysis ───────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('analyze-btn');
+  const btnText = document.getElementById('btn-text');
+  btn.disabled = true;
+  btnText.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    const res = await fetch(`${API}/analyze`, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    analysisContext = data;
+    renderResults(data);
+    showToast('Analysis complete!', 'success');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Re-analyze';
+  }
+}
+
+function fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+function renderResults(data) {
+  const s = data.summary;
+  document.getElementById('results').style.display = 'block';
+
+  // Metrics
+  document.getElementById('metrics-grid').innerHTML = `
+    <div class="metric-card"><div class="metric-label">Total spent</div><div class="metric-val red">${fmt(s.total_spent)}</div><div class="metric-sub">${s.transaction_count} transactions</div></div>
+    <div class="metric-card"><div class="metric-label">Total income</div><div class="metric-val green">${fmt(s.total_income)}</div></div>
+    <div class="metric-card"><div class="metric-label">Top category</div><div class="metric-val" style="font-size:18px">${s.top_category}</div></div>
+    <div class="metric-card"><div class="metric-label">Anomalies</div><div class="metric-val ${s.anomaly_count > 0 ? 'warn' : 'green'}">${s.anomaly_count}</div><div class="metric-sub">suspicious charges</div></div>
+    <div class="metric-card"><div class="metric-label">Save/month</div><div class="metric-val green">${fmt(s.potential_savings)}</div><div class="metric-sub">estimated potential</div></div>
+  `;
+
+  // Categories bars
+  const cats = Object.entries(data.categories).filter(([,v]) => v.total > 0).sort((a,b) => b[1].total - a[1].total);
+  const maxAmt = cats[0]?.[1].total || 1;
+  const totalSpent = s.total_spent || 1;
+  document.getElementById('cat-count').textContent = cats.length + ' categories';
+  document.getElementById('cat-body').innerHTML = cats.slice(0,8).map(([cat, v]) => {
+    const pct = v.total / totalSpent;
+    const cls = pct > 0.25 ? 'danger' : pct > 0.15 ? 'warn' : '';
+    return `<div class="cat-row">
+      <span class="cat-name">${cat}</span>
+      <div class="cat-track"><div class="cat-bar ${cls}" style="width:${Math.round(v.total/maxAmt*100)}%"></div></div>
+      <span class="cat-amt">${fmt(v.total)}</span>
+    </div>`;
+  }).join('');
+
+  // Pie chart
+  if (pieChart) pieChart.destroy();
+  const colors = ['#c8f560','#60a5fa','#ff6b6b','#ffb84d','#a78bfa','#34d399','#f472b6','#fb923c'];
+  pieChart = new Chart(document.getElementById('pie-chart'), {
+    type: 'doughnut',
+    data: {
+      labels: cats.slice(0,8).map(([c]) => c),
+      datasets: [{ data: cats.slice(0,8).map(([,v]) => Math.round(v.total)), backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { color: '#888884', font: { family: 'DM Mono', size: 10 }, boxWidth: 10, padding: 12 } } }
+    }
+  });
+
+  // Anomalies
+  document.getElementById('anom-count').textContent = data.anomalies.length + ' found';
+  document.getElementById('anom-body').innerHTML = data.anomalies.length ? data.anomalies.map(a =>
+    `<div class="anomaly-row">
+      <div class="anomaly-sev ${a.severity}"></div>
+      <div><div class="anomaly-msg">${a.message}</div><span class="anomaly-badge ${a.severity}">${a.severity}</span></div>
+    </div>`).join('') : `<div class="no-anomalies"><div class="no-anomalies-icon">✅</div>No anomalies detected. Your transactions look normal.</div>`;
+
+  // Tips
+  const ICONS = { 'Food & Dining':'🍱', 'Entertainment':'📺', 'Transport':'🚗', 'Shopping':'🛍️' };
+  document.getElementById('tips-count').textContent = data.tips.length + ' tips';
+  document.getElementById('tips-body').innerHTML = data.tips.length ? data.tips.map(t =>
+    `<div class="tip-row">
+      <div class="tip-icon-wrap">${ICONS[t.category] || '💡'}</div>
+      <div><div class="tip-text">${t.message}</div><div class="tip-save">Save ~${fmt(t.estimated_saving)}/month</div></div>
+    </div>`).join('') : `<div class="no-anomalies">Your spending looks well balanced! Keep it up.</div>`;
+
+  // Show chat
+  document.getElementById('chat-section').classList.add('show');
+  addAgentMsg(`I've analyzed your statement. You spent ${fmt(s.total_spent)} across ${Object.keys(data.categories).length} categories. Found ${s.anomaly_count} anomaly${s.anomaly_count !== 1 ? 'ies' : ''} and ${fmt(s.potential_savings)}/month in potential savings. Ask me anything! 💬`);
+  document.getElementById('chat-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────────
+function addAgentMsg(text) {
+  const el = document.getElementById('chat-messages');
+  el.innerHTML += `<div class="msg"><div class="msg-av ai">AI</div><div class="msg-bubble ai">${text}</div></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+function addUserMsg(text) {
+  const el = document.getElementById('chat-messages');
+  el.innerHTML += `<div class="msg user"><div class="msg-av you">YOU</div><div class="msg-bubble you">${text}</div></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+function showTyping() {
+  const el = document.getElementById('chat-messages');
+  el.innerHTML += `<div class="msg" id="typing-msg"><div class="msg-av ai">AI</div><div class="msg-bubble ai"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function ask(q) { document.getElementById('chat-input').value = q; sendChat(); }
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+  const sendBtn = document.getElementById('send-btn');
+  sendBtn.disabled = true;
+  addUserMsg(q);
+  showTyping();
+  try {
+    const res = await fetch(`${API}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: q, context: analysisContext })
+    });
+    const data = await res.json();
+    document.getElementById('typing-msg')?.remove();
+    addAgentMsg(data.reply);
+  } catch(e) {
+    document.getElementById('typing-msg')?.remove();
+    addAgentMsg('Sorry, something went wrong. Make sure the backend is running.');
+  }
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
